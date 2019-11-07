@@ -11,24 +11,33 @@ I2C i2c_lcd(D14,D15); // SDA, SCL
 TextLCD_I2C lcd(&i2c_lcd, 0x4E, TextLCD::LCD16x2);// I2C exp: I2C bus, PCF8574 Slaveaddress, LCD Type
 int columns = lcd.columns(), rows = lcd.rows();
 bool display_mode = true, button_state;
+int buff,i=0;
 char* buffer;
 DigitalIn mode_button(USER_BUTTON);
+
+void onBluetoothReceived(void){
+  // while(bluetooth.readable()){
+  //     buff = bluetooth.getc();
+  //     if(buff == '\n'){PC.putc('\n');}
+  //     else{
+  //      PC.printf("%d",buff); 
+  //     }
+  //    }
+  if(bluetooth.readable()){
+    bluetooth.gets(buffer, 8);
+    PC.printf("%s\n", buffer);
+  }
+}
 
 int main() {
   PC.baud(38400);
   bluetooth.baud(38400);
   lcd.setBacklight(TextLCD_I2C::LightOn);
   lcd.cls();
+  bluetooth.attach(&onBluetoothReceived, Serial::RxIrq);
   PC.printf("Ready\n");
   while (1)
   {
-    if (bluetooth.readable())
-    {
-      PC.putc(bluetooth.getc());
-    }
-    else{
-      // bluetooth.printf("A");
-    }
     if(!mode_button && button_state){button_state = false;}
     if(mode_button == 1 && !button_state){
       button_state = true;
