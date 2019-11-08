@@ -12,7 +12,8 @@ TextLCD_I2C lcd(&i2c_lcd, 0x4E, TextLCD::LCD16x2);// I2C exp: I2C bus, PCF8574 S
 int columns = lcd.columns(), rows = lcd.rows();
 bool display_mode = true, button_state;
 int buff,i=0;
-char* buffer;
+char buffer[9];
+uint8_t data[4];
 DigitalIn mode_button(USER_BUTTON);
 
 void onBluetoothReceived(void){
@@ -24,8 +25,11 @@ void onBluetoothReceived(void){
   //     }
   //    }
   if(bluetooth.readable()){
-    bluetooth.gets(buffer, 8);
-    PC.printf("%s\n", buffer);
+    bluetooth.gets(buffer, sizeof(buffer));
+    for(int j=0;j<sizeof(data);j++){
+      data[j] = (buffer[j*2]-1)*128 + (buffer[j*2+1]-1);
+      PC.printf("data[%d] = %d\n", j, data[j]);
+    }
   }
 }
 
