@@ -1,6 +1,6 @@
 #include <mbed.h>
 
-Serial PC(USBTX, USBRX), bluetooth(D5, D4);
+Serial PC(USBTX, USBRX), bluetooth(D8, D2);
 DigitalOut led(LED1);
 uint8_t receive = 0;
 char buffer[9];
