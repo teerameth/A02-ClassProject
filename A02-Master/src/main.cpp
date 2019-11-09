@@ -2,10 +2,10 @@
 #include "TextLCD.h"
  
 // Host PC Communication channels
-Serial PC(USBTX, USBRX), bluetooth(D8, D2);
+Serial PC(USBTX, USBRX), bluetooth(D8, D2);//Bluetooth (RX, TX)
  
 // I2C Communication
-I2C i2c_lcd(D14,D15); // SDA, SCL
+I2C i2c_lcd(D14,D15); // LCD (SDA, SCL) ***Pull UP Resistor!!!!
  
 // LCD instantiation 
 TextLCD_I2C lcd(&i2c_lcd, 0x4E, TextLCD::LCD16x2);// I2C exp: I2C bus, PCF8574 Slaveaddress, LCD Type
@@ -13,20 +13,14 @@ int columns = lcd.columns(), rows = lcd.rows();
 bool display_mode = true, button_state;
 int buff,i=0;
 char buffer[9];
+char* display_buffer;
 uint8_t data[4];
 DigitalIn mode_button(USER_BUTTON);
 
 void onBluetoothReceived(void){
-  // while(bluetooth.readable()){
-  //     buff = bluetooth.getc();
-  //     if(buff == '\n'){PC.putc('\n');}
-  //     else{
-  //      PC.printf("%d",buff); 
-  //     }
-  //    }
   if(bluetooth.readable()){
     bluetooth.gets(buffer, sizeof(buffer));
-    for(int j=0;j<sizeof(data);j++){
+    for(int j=0; j < sizeof(data); j++){
       data[j] = (buffer[j*2]-1)*128 + (buffer[j*2+1]-1);
       PC.printf("data[%d] = %d\n", j, data[j]);
     }
@@ -56,12 +50,16 @@ int main() {
       }
     }
     if(display_mode){
-      lcd.locate(6,0);lcd.puts("");//Update Speed
-      lcd.locate(6,1);lcd.puts("");//Update Roll
+      sprintf(display_buffer, "%.2f", data[0]);
+      lcd.locate(6,0);lcd.puts(display_buffer);//Update Speed
+      sprintf(display_buffer, "%.2f", data[1]);
+      lcd.locate(6,1);lcd.puts(display_buffer);//Update Roll
     }
     else{
-      lcd.locate(6,0);lcd.puts("");//Update Temp
-      lcd.locate(6,1);lcd.puts("");//Update Humid
-    }
+      sprintf(display_buffer, "%.2f", data[2]);
+      lcd.locate(6,0);lcd.puts(display_buffer);//Update Temp
+      sprintf(display_buffer, "%.2f", data[3]);
+      lcd.locate(6,1);lcd.puts(display_buffer);//Update Humid
+     }
   }
 }
