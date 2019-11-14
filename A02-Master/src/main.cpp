@@ -22,7 +22,7 @@ DigitalIn A(D3), B(D4);
 int degree, PWM;
 int highByte, lowByte;
 
-DHT22 dht22; // Notice DHT22 named dht22
+DHT22 dht22(D4); // Notice DHT22 named dht22
 
 void split(int n) {
     highByte = (n / 128) + 1;
