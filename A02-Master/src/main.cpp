@@ -49,15 +49,15 @@ int main() {
       BluetoothReceived();
       sendable = true;
       if(display_mode){
-      sprintf(display_buffer, "%d", data[0]);
+      sprintf(display_buffer, "%d   ", data[0]);
       lcd.locate(6,0);lcd.puts(display_buffer);//Update Speed
-      sprintf(display_buffer, "%d", data[1]);
+      sprintf(display_buffer, "%d   ", data[1]-90);
       lcd.locate(6,1);lcd.puts(display_buffer);//Update Roll
       }
       else{
-        sprintf(display_buffer, "%d", data[2]);
+        sprintf(display_buffer, "%d   ", data[2]);
         lcd.locate(6,0);lcd.puts(display_buffer);//Update Temp
-        sprintf(display_buffer, "%d", data[3]);
+        sprintf(display_buffer, "%d   ", data[3]);
         lcd.locate(6,1);lcd.puts(display_buffer);//Update Humid
        }
     }
