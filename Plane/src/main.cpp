@@ -1,5 +1,5 @@
 #include <mbed.h>
-
+#include "DHT22.h"
 Serial PC(USBTX, USBRX), bluetooth(D8, D2);//Bluetooth (RX, TX)
 uint8_t receive = 0;
 char buffer[9];
@@ -11,6 +11,8 @@ int highByte, lowByte;
 int currentDegree = 90;
 int delayms = 20;
 bool sendable=false;
+
+DHT22 dht22(D4);
 
 void split(int n) {
     highByte = (n / 128) + 1;
@@ -76,6 +78,11 @@ int main() {
       T.stop();
       T.reset();
       T.start();
+
+      dht22.readData();
+      data[2] = int(dht22.ReadTemperature());
+      data[3] = int(dht22.ReadHumidity());
+
       for(int i=0;i<4;i++){
         split(data[i]);
         buffer[i*2] = highByte;
