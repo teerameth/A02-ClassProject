@@ -4,8 +4,8 @@ Serial PC(USBTX, USBRX), bluetooth(D8, D2);//Bluetooth (RX, TX)
 uint8_t receive = 0;
 char buffer[9];
 char buffer1[5];
-uint16_t data[4] = {1000, 2000, 3000, 4000};
-uint16_t data1[2];
+uint32_t data[4] = {1000, 2000, 3000, 4000};
+uint32_t data1[2];
 PwmOut Servo(D9), Propeller(D10);
 int highByte, lowByte;
 int currentDegree = 90;
@@ -28,7 +28,7 @@ void setServo(int degree){
 void setPropeller(float PWM){
   int min=40, max=500;
   // PWM = (PWM *(max-min)/1024) + min;
-  PC.printf("%f\n", PWM);
+  // PC.printf("%f\n", PWM);
   Propeller.write(PWM);
 }
 
@@ -37,7 +37,7 @@ void BluetoothReceived(void){
     for(int j=0; j < 2; j++){
       if(buffer1[j*2] > 0 && buffer1[j*2+1] > 0){
         data1[j] = (buffer1[j*2]-1)*128 + (buffer1[j*2+1]-1);
-        // PC.printf("data[%d] = %d\n", j, data1[j]);
+        PC.printf("data[%d] = %d\n", j, data1[j]);
         // PC.printf("%d, %d\n", buffer1[j*2]-1, buffer1[j*2+1]);
       }
     }
@@ -71,14 +71,15 @@ int main() {
     }
     if(T1.read() > 0.1){
       T1.stop();T1.start();
-      setPropeller(float(data1[1])/1024);//PWM
+      setPropeller(float(data1[1])/1024/10);//PWM //limited at 10%
     }
 
     if((sendable && T.read() > 0.2)){
       T.stop();
       T.reset();
       T.start();
-
+      data[0] = int(data1[1]); //speed
+      data[1] = int(currentDegree); //roll
       dht22.readData();
       data[2] = int(dht22.ReadTemperature());
       data[3] = int(dht22.ReadHumidity());

@@ -49,15 +49,15 @@ int main() {
       BluetoothReceived();
       sendable = true;
       if(display_mode){
-      sprintf(display_buffer, "%d   ", data[0]);
+      sprintf(display_buffer, "%d%%   ", int(float(data[0])/1024*100));
       lcd.locate(6,0);lcd.puts(display_buffer);//Update Speed
-      sprintf(display_buffer, "%d   ", data[1]-90);
+      sprintf(display_buffer, "%d    ", data[1]-90);
       lcd.locate(6,1);lcd.puts(display_buffer);//Update Roll
       }
       else{
-        sprintf(display_buffer, "%d   ", data[2]);
+        sprintf(display_buffer, "%d    ", data[2]);
         lcd.locate(6,0);lcd.puts(display_buffer);//Update Temp
-        sprintf(display_buffer, "%d   ", data[3]);
+        sprintf(display_buffer, "%d    ", data[3]);
         lcd.locate(6,1);lcd.puts(display_buffer);//Update Humid
        }
     }
@@ -84,9 +84,9 @@ int main() {
       PWM = int(Y.read() * 1023);
       // PC.printf("%d, %d\n", degree, PWM);
       split(degree);
-      buffer1[0] = highByte;buffer1[1] = lowByte;
+      buffer1[0] = highByte;buffer1[1] = lowByte;//set roll
       split(PWM);
-      buffer1[2] = highByte;buffer1[3] = lowByte;
+      buffer1[2] = highByte;buffer1[3] = lowByte;//set speed
       bluetooth.puts(buffer1);
       sendable = false;
     }
