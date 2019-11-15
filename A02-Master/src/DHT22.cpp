@@ -198,6 +198,9 @@ float DHT22::ConvertCelciustoKelvin(float celsius) {
     return celsius + 273.15;
 }
 
+float DHT22::ReadTemperature() {
+        return _lastTemperature;
+}
 float DHT22::ReadTemperature(eScale Scale) {
     if (Scale == FARENHEIT)
         return ConvertCelciustoFarenheit(_lastTemperature);

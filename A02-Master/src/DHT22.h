@@ -29,6 +29,7 @@ public:
     ~DHT22();
     int readData(void);
     float ReadHumidity(void);
+    float ReadTemperature();
     float ReadTemperature(eScale Scale);
 
 private:

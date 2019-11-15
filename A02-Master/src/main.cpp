@@ -1,6 +1,5 @@
 #include "mbed.h"
 #include "TextLCD.h"
-#include "DHT22.h"
  
 // Host PC Communication channels
 Serial PC(USBTX, USBRX), bluetooth(D8, D2);//Bluetooth (RX, TX)
@@ -21,8 +20,6 @@ AnalogIn X(A0), Y(A1);
 DigitalIn A(D3), B(D4);
 int degree, PWM;
 int highByte, lowByte;
-
-DHT22 dht22(D4); // Notice DHT22 named dht22
 
 void split(int n) {
     highByte = (n / 128) + 1;
@@ -83,11 +80,6 @@ int main() {
       T.stop();
       T.reset();
       T.start();
-	  
-	  dht22.readData(); // Read data
-	  data[3] = int(dht22.ReadTemperature()); // Read temperature
-	  data[4] = int(dht22.ReadHumidity()); // Read Himidity
-	  
       degree = int(X.read() * 1023);
       PWM = int(Y.read() * 1023);
       // PC.printf("%d, %d\n", degree, PWM);
