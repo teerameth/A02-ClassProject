@@ -81,8 +81,8 @@ int main() {
       data[0] = int(data1[1]); //speed
       data[1] = int(currentDegree); //roll
       dht22.readData();
-      data[2] = int(dht22.ReadTemperature());
-      data[3] = int(dht22.ReadHumidity());
+      data[2] = int(dht22.ReadTemperature()); //temperature
+      data[3] = int(dht22.ReadHumidity()); //humidity
 
       for(int i=0;i<4;i++){
         split(data[i]);
