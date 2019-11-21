@@ -26,7 +26,6 @@ int DHT22::readData() {
 
     /*
         Check loop data 41 bits and all data set 0.
-        Check loop data 40 bits and all data set 0.
     */
     for (i = 0; i < DHT22_DATA_BIT_COUNT; i++) {  
         bitTimes[i] = 0;
