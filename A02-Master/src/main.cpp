@@ -12,8 +12,8 @@ TextLCD_I2C lcd(&i2c_lcd, 0x4E, TextLCD::LCD16x2);// I2C exp: I2C bus, PCF8574 S
 int columns = lcd.columns(), rows = lcd.rows();
 bool display_mode = true, button_state, first_round = true, sendable=true;
 int buff,i=0;
-char buffer[9];
-char buffer1[5];
+char recieve_buffer[9];
+char send_buffer[5];
 char display_buffer[6];
 uint16_t data[4];
 AnalogIn X(A0), Y(A1);
@@ -27,11 +27,9 @@ void split(int n) {
 }
 
 void BluetoothReceived(void){
-    bluetooth.gets(buffer, sizeof(buffer));
+    bluetooth.gets(recieve_buffer, sizeof(recieve_buffer));
     for(int j=0; j < 4; j++){
-      data[j] = (buffer[j*2]-1)*128 + (buffer[j*2+1]-1);
-      // PC.printf("data[%d] = %d\n", j, data[j]);
-      // PC.printf("data[%d] = %d, %d\n", j, buffer[j*2]-1, buffer[j*2+1]-1);
+      data[j] = (recieve_buffer[j*2]-1)*128 + (recieve_buffer[j*2+1]-1);
     }
 }
 
@@ -82,10 +80,10 @@ int main() {
       PWM = int(Y.read() * 1023);
       // PC.printf("%d, %d\n", degree, PWM);
       split(degree);
-      buffer1[0] = highByte;buffer1[1] = lowByte;//set roll
+      send_buffer[0] = highByte;send_buffer[1] = lowByte;//set roll
       split(PWM);
-      buffer1[2] = highByte;buffer1[3] = lowByte;//set speed
-      bluetooth.puts(buffer1);
+      send_buffer[2] = highByte;send_buffer[3] = lowByte;//set speed
+      bluetooth.puts(send_buffer);
       sendable = false;
     }
   }
