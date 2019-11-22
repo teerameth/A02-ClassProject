@@ -2,8 +2,8 @@
 #include "DHT22.h"
 Serial PC(USBTX, USBRX), bluetooth(D8, D2);//Bluetooth (RX, TX)
 uint8_t receive = 0;
-char buffer[9];
-char buffer1[5];
+char recieve_buffer[9];
+char send_buffer[5];
 uint32_t data[4] = {0, 0, 0, 0};
 uint32_t data1[2];
 PwmOut Servo(D9), Propeller(D10);
@@ -33,12 +33,11 @@ void setPropeller(float PWM){
 }
 
 void BluetoothReceived(void){
-    bluetooth.gets(buffer1, sizeof(buffer1));
+    bluetooth.gets(send_buffer, sizeof(send_buffer));
     for(int j=0; j < 2; j++){
-      if(buffer1[j*2] > 0 && buffer1[j*2+1] > 0){
-        data1[j] = (buffer1[j*2]-1)*128 + (buffer1[j*2+1]-1);
+      if(send_buffer[j*2] > 0 && send_buffer[j*2+1] > 0){
+        data1[j] = (send_buffer[j*2]-1)*128 + (send_buffer[j*2+1]-1);
         PC.printf("data[%d] = %d\n", j, data1[j]);
-        // PC.printf("%d, %d\n", buffer1[j*2]-1, buffer1[j*2+1]);
       }
     }
 }
@@ -86,12 +85,11 @@ int main() {
 
       for(int i=0;i<4;i++){
         split(data[i]);
-        buffer[i*2] = highByte;
-        buffer[i*2+1] = lowByte;
+        recieve_buffer[i*2] = highByte;
+        recieve_buffer[i*2+1] = lowByte;
       }
-      bluetooth.puts(buffer);
+      bluetooth.puts(recieve_buffer);
       sendable = false;
-      // PC.printf("%d\n", buffer);
     }
     
   }
