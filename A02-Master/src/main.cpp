@@ -2,7 +2,7 @@
 #include "TextLCD.h"
  
 // Host PC Communication channels
-Serial PC(USBTX, USBRX), bluetooth(D8, D2);//Bluetooth (RX, TX)
+Serial PC(USBTX, USBRX, 38400), bluetooth(D8, D2, 38400);//Bluetooth (RX, TX)
  
 // I2C Communication
 I2C i2c_lcd(D14,D15); // LCD (SDA, SCL) ***Pull UP Resistor!!!!
@@ -36,8 +36,6 @@ void BluetoothReceived(void){
 }
 
 int main() {
-  PC.baud(38400);
-  bluetooth.baud(38400);
   lcd.setBacklight(TextLCD_I2C::LightOn);
   lcd.cls();
   Timer T;
