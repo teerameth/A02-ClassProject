@@ -2,7 +2,7 @@
 #include "TextLCD.h"
  
 // Host PC Communication channels
-Serial PC(USBTX, USBRX), bluetooth(D8, D2);//Bluetooth (RX, TX)
+Serial PC(USBTX, USBRX, 38400), bluetooth(D8, D2, 38400);//Bluetooth (RX, TX)
  
 // I2C Communication
 I2C i2c_lcd(D14,D15); // LCD (SDA, SCL) ***Pull UP Resistor!!!!
@@ -11,48 +11,50 @@ I2C i2c_lcd(D14,D15); // LCD (SDA, SCL) ***Pull UP Resistor!!!!
 TextLCD_I2C lcd(&i2c_lcd, 0x4E, TextLCD::LCD16x2);// I2C exp: I2C bus, PCF8574 Slaveaddress, LCD Type
 int columns = lcd.columns(), rows = lcd.rows();
 bool display_mode = true, button_state, first_round = true, sendable=true;
-int buff,i=0;
-char buffer[9];
-char buffer1[5];
 char display_buffer[6];
-uint16_t data[4];
+
 AnalogIn X(A0), Y(A1);
 DigitalIn A(D3), B(D4);
 int degree, PWM;
-int highByte, lowByte;
+// int highByte, lowByte;
+char get_buffer[21], send_buffer[11];//"0000,0000,0000,0000;" -> 21   "0000,0000;" -> 11
+char* token;
+char buffer_X[4], buffer_Y[4];
+int16_t data[4] = {50, 0, 25, 50};//Speed, Roll, Temp, Humid
 
-void split(int n) {
-    highByte = (n / 128) + 1;
-    lowByte = n % 128 + 1;
-}
 
 void BluetoothReceived(void){
-    bluetooth.gets(buffer, sizeof(buffer));
-    for(int j=0; j < 4; j++){
-      data[j] = (buffer[j*2]-1)*128 + (buffer[j*2+1]-1);
-      // PC.printf("data[%d] = %d\n", j, data[j]);
-      // PC.printf("data[%d] = %d, %d\n", j, buffer[j*2]-1, buffer[j*2+1]-1);
-    }
+    bluetooth.gets(get_buffer, 17);
+    PC.printf("%s\n", get_buffer);
+    token = strtok(get_buffer, ",;");data[0] = atoi(token);
+    token = strtok(NULL, ",;");data[1] = atoi(token);
+    token = strtok(NULL, ",;");data[2] = atoi(token);
+    token = strtok(NULL, ",;");data[3] = atoi(token);
+    sendable = true;
+}
+
+int pow(int m, int n){
+  int a = 1;
+  for(int j=0;j<n;j++){
+    a *= 10;
+  }
+  return a;
 }
 
 int main() {
-  PC.baud(38400);
-  bluetooth.baud(38400);
   lcd.setBacklight(TextLCD_I2C::LightOn);
   lcd.cls();
   Timer T;
   T.start();
   PC.printf("Ready\n");
-  while (1)
-  {
+  while (1){
     if(bluetooth.readable()){
       BluetoothReceived();
-      sendable = true;
       if(display_mode){
-      sprintf(display_buffer, "%d%%   ", int(float(data[0])/1024*100));
-      lcd.locate(6,0);lcd.puts(display_buffer);//Update Speed
-      sprintf(display_buffer, "%d    ", data[1]-90);
-      lcd.locate(6,1);lcd.puts(display_buffer);//Update Roll
+        sprintf(display_buffer, "%d%%   ", int(float(data[0])/1024*100));
+        lcd.locate(6,0);lcd.puts(display_buffer);//Update Speed
+        sprintf(display_buffer, "%d    ", data[1]-90);
+        lcd.locate(6,1);lcd.puts(display_buffer);//Update Roll
       }
       else{
         sprintf(display_buffer, "%d    ", data[2]);
@@ -77,17 +79,13 @@ int main() {
       }
     }
     if((sendable && T.read() > 0.2) || T.read()>0.5){
-      T.stop();
-      T.reset();
-      T.start();
+      T.stop();T.reset();T.start();
       degree = int(X.read() * 1023);
       PWM = int(Y.read() * 1023);
-      // PC.printf("%d, %d\n", degree, PWM);
-      split(degree);
-      buffer1[0] = highByte;buffer1[1] = lowByte;//set roll
-      split(PWM);
-      buffer1[2] = highByte;buffer1[3] = lowByte;//set speed
-      bluetooth.puts(buffer1);
+      sprintf(buffer_X, "%04d", degree);
+      sprintf(buffer_Y, "%04d", PWM);
+      sprintf(send_buffer, "%s,%s;", buffer_X, buffer_Y);
+      bluetooth.puts(send_buffer);
       sendable = false;
     }
   }
