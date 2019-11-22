@@ -4,7 +4,7 @@ Serial PC(USBTX, USBRX), bluetooth(D8, D2);//Bluetooth (RX, TX)
 uint8_t receive = 0;
 char buffer[9];
 char buffer1[5];
-uint32_t data[4] = {1000, 2000, 3000, 4000};
+uint32_t data[4] = {0, 0, 0, 0};
 uint32_t data1[2];
 PwmOut Servo(D9), Propeller(D10);
 int highByte, lowByte;
