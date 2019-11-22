@@ -2,7 +2,7 @@
 #include "TextLCD.h"
  
 // Host PC Communication channels
-Serial PC(USBTX, USBRX, 38400), bluetooth(D8, D2, 38400);//Bluetooth (RX, TX)
+Serial PC(USBTX, USBRX), bluetooth(D8, D2);//Bluetooth (RX, TX)
  
 // I2C Communication
 I2C i2c_lcd(D14,D15); // LCD (SDA, SCL) ***Pull UP Resistor!!!!
@@ -12,8 +12,8 @@ TextLCD_I2C lcd(&i2c_lcd, 0x4E, TextLCD::LCD16x2);// I2C exp: I2C bus, PCF8574 S
 int columns = lcd.columns(), rows = lcd.rows();
 bool display_mode = true, button_state, first_round = true, sendable=true;
 int buff,i=0;
-char recieve_buffer[9];
-char send_buffer[5];
+char buffer[9];
+char buffer1[5];
 char display_buffer[6];
 uint16_t data[4];
 AnalogIn X(A0), Y(A1);
@@ -27,13 +27,17 @@ void split(int n) {
 }
 
 void BluetoothReceived(void){
-    bluetooth.gets(recieve_buffer, sizeof(recieve_buffer));
+    bluetooth.gets(buffer, sizeof(buffer));
     for(int j=0; j < 4; j++){
-      data[j] = (recieve_buffer[j*2]-1)*128 + (recieve_buffer[j*2+1]-1);
+      data[j] = (buffer[j*2]-1)*128 + (buffer[j*2+1]-1);
+      // PC.printf("data[%d] = %d\n", j, data[j]);
+      // PC.printf("data[%d] = %d, %d\n", j, buffer[j*2]-1, buffer[j*2+1]-1);
     }
 }
 
 int main() {
+  PC.baud(38400);
+  bluetooth.baud(38400);
   lcd.setBacklight(TextLCD_I2C::LightOn);
   lcd.cls();
   Timer T;
@@ -80,10 +84,10 @@ int main() {
       PWM = int(Y.read() * 1023);
       // PC.printf("%d, %d\n", degree, PWM);
       split(degree);
-      send_buffer[0] = highByte;send_buffer[1] = lowByte;//set roll
+      buffer1[0] = highByte;buffer1[1] = lowByte;//set roll
       split(PWM);
-      send_buffer[2] = highByte;send_buffer[3] = lowByte;//set speed
-      bluetooth.puts(send_buffer);
+      buffer1[2] = highByte;buffer1[3] = lowByte;//set speed
+      bluetooth.puts(buffer1);
       sendable = false;
     }
   }

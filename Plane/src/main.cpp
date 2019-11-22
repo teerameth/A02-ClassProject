@@ -2,9 +2,9 @@
 #include "DHT22.h"
 Serial PC(USBTX, USBRX), bluetooth(D8, D2);//Bluetooth (RX, TX)
 uint8_t receive = 0;
-char recieve_buffer[9];
-char send_buffer[5];
-uint32_t data[4] = {0, 0, 0, 0};
+char buffer[9];
+char buffer1[5];
+uint32_t data[4] = {z, 2000, 3000, 4000};
 uint32_t data1[2];
 PwmOut Servo(D9), Propeller(D10);
 int highByte, lowByte;
@@ -33,11 +33,12 @@ void setPropeller(float PWM){
 }
 
 void BluetoothReceived(void){
-    bluetooth.gets(send_buffer, sizeof(send_buffer));
+    bluetooth.gets(buffer1, sizeof(buffer1));
     for(int j=0; j < 2; j++){
-      if(send_buffer[j*2] > 0 && send_buffer[j*2+1] > 0){
-        data1[j] = (send_buffer[j*2]-1)*128 + (send_buffer[j*2+1]-1);
+      if(buffer1[j*2] > 0 && buffer1[j*2+1] > 0){
+        data1[j] = (buffer1[j*2]-1)*128 + (buffer1[j*2+1]-1);
         PC.printf("data[%d] = %d\n", j, data1[j]);
+        // PC.printf("%d, %d\n", buffer1[j*2]-1, buffer1[j*2+1]);
       }
     }
 }
@@ -80,16 +81,17 @@ int main() {
       data[0] = int(data1[1]); //speed
       data[1] = int(currentDegree); //roll
       dht22.readData();
-      data[2] = int(dht22.ReadTemperature()); //temperature
-      data[3] = int(dht22.ReadHumidity()); //humidity
+      data[2] = int(dht22.ReadTemperature());
+      data[3] = int(dht22.ReadHumidity());
 
       for(int i=0;i<4;i++){
         split(data[i]);
-        recieve_buffer[i*2] = highByte;
-        recieve_buffer[i*2+1] = lowByte;
+        buffer[i*2] = highByte;
+        buffer[i*2+1] = lowByte;
       }
-      bluetooth.puts(recieve_buffer);
+      bluetooth.puts(buffer);
       sendable = false;
+      // PC.printf("%d\n", buffer);
     }
     
   }
