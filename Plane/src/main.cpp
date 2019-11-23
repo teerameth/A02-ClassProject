@@ -1,11 +1,11 @@
 #include <mbed.h>
 #include "DHT22.h"
-Serial PC(USBTX, USBRX, 38400), bluetooth(D8, D2, 38400);//Bluetooth (RX, TX)
+Serial PC(USBTX, USBRX, 115200), bluetooth(D8, D2, 115200);//Bluetooth (RX, TX)
 char get_buffer[11], send_buffer[11];//"0000,0000;" -> 11
 PwmOut Servo(D9), Propeller(D10);
-int currentDegree = 90, currentSpeed = 512;
-int delayms = 20;
-bool sendable=false;
+volatile int currentDegree = 90, currentSpeed = 512;
+volatile int delayms = 20;
+volatile bool sendable=false;
 
 DHT22 dht22(D4);
 
@@ -44,6 +44,8 @@ int main() {
   float degree = 0;
   int PWM = 0;
   Timer T;
+  Timer TP;
+  TP.start();
   T.start();
   PC.printf("Slave\n");
   while(1) {
@@ -52,18 +54,11 @@ int main() {
       sendable = true;
       degree = float(data[1]) * 180 / 1024;
     }
-    // if(currentDegree < degree){//Servo
-    //   currentDegree += 1;
-    //   setServo(currentDegree);
-    // }
-    // else if(currentDegree > degree){
-    //   currentDegree -= 1;
-    //   setServo(currentDegree);
-    // }
+    
     
 
     if((sendable && T.read() > 0.02)){
-      T.stop();T.reset();T.start();
+      T.reset();
       dht22.readData();
       data[2] = int(dht22.ReadTemperature());
       data[3] = int(dht22.ReadHumidity());
@@ -77,9 +72,18 @@ int main() {
       sendable = false;
     }
 
-    if(abs(currentDegree - degree) > 5){//update servo degree
-      currentDegree = degree;
-      setServo(currentDegree);
+    if(abs(currentDegree - degree) > 2){//update servo degree
+      if(TP.read() > 0.05){
+        if(currentDegree < degree){//Servo
+          currentDegree += 3;
+          setServo(currentDegree);
+          }
+        else if(currentDegree > degree){
+          currentDegree -= 3;
+          setServo(currentDegree);
+          }
+        TP.reset();
+        }
       }
     if(abs(currentSpeed - data[0]) > 5){
       currentSpeed = data[0];//data[0] มีค่าตั่งเเต่ 0 - 1023

@@ -2,15 +2,15 @@
 #include "TextLCD.h"
  
 // Host PC Communication channels
-Serial PC(USBTX, USBRX, 38400), bluetooth(D8, D2, 38400);//Bluetooth (RX, TX)
+Serial PC(USBTX, USBRX, 115200), bluetooth(D8, D2, 115200);//Bluetooth (RX, TX)
  
 // I2C Communication
 I2C i2c_lcd(D14,D15); // LCD (SDA, SCL) ***Pull UP Resistor!!!!
  
 // LCD instantiation 
 TextLCD_I2C lcd(&i2c_lcd, 0x4E, TextLCD::LCD16x2);// I2C exp: I2C bus, PCF8574 Slaveaddress, LCD Type
-int columns = lcd.columns(), rows = lcd.rows();
-bool display_mode = true, button_state, first_round = true, sendable=true;
+volatile int columns = lcd.columns(), rows = lcd.rows();
+volatile bool display_mode = true, button_state, first_round = true, sendable=true;
 char display_buffer[6];
 
 AnalogIn X(A0), Y(A1);
@@ -18,7 +18,7 @@ DigitalIn A(D3), B(D4);
 char get_buffer[11], send_buffer[11];//"0000,0000;" -> 11
 char* token;
 char buffer_X[5], buffer_Y[5];
-int16_t data[4] = {50, 0, 25, 50};//Speed, Roll, Temp, Humid
+volatile int16_t data[4] = {50, 0, 25, 50};//Speed, Roll, Temp, Humid
 
 
 void BluetoothReceived(void){
@@ -46,7 +46,7 @@ int main() {
 
     //Control Plane
     if((sendable && T.read() > 0.02) || T.read()>0.5){
-      T.stop();T.reset();T.start();
+      T.reset();
       sprintf(buffer_Y, "%04d", data[0]);//Speed
       sprintf(buffer_X, "%04d", data[1]);//Roll
       sprintf(send_buffer, "%s,%s;", buffer_Y, buffer_X);
@@ -58,7 +58,7 @@ int main() {
     if(display_mode){
         sprintf(display_buffer, "%d%%   ", int(float(data[0])/1024*100));
         lcd.locate(6,0);lcd.puts(display_buffer);//Update Speed
-        sprintf(display_buffer, "%d    ", (int)(float(data[1]) / 1023 * 180) - 90);
+        sprintf(display_buffer, "%d    ", (int)(float(data[1]) / 1023 * 90) - 45);
         lcd.locate(6,1);lcd.puts(display_buffer);//Update Roll
       }
     else{
@@ -85,7 +85,5 @@ int main() {
     //Read from joystick and update
     data[0] = int(Y.read() * 1023);//Speed
     data[1] = int(X.read() * 1023);//Roll
-    
-    
   }
 }
