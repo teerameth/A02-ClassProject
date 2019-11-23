@@ -15,30 +15,20 @@ char display_buffer[6];
 
 AnalogIn X(A0), Y(A1);
 DigitalIn A(D3), B(D4);
-int degree, PWM;
-// int highByte, lowByte;
-char get_buffer[21], send_buffer[11];//"0000,0000,0000,0000;" -> 21   "0000,0000;" -> 11
+char get_buffer[11], send_buffer[11];//"0000,0000;" -> 11
 char* token;
-char buffer_X[4], buffer_Y[4];
+char buffer_X[5], buffer_Y[5];
 int16_t data[4] = {50, 0, 25, 50};//Speed, Roll, Temp, Humid
 
 
 void BluetoothReceived(void){
-    bluetooth.gets(get_buffer, 17);
-    PC.printf("%s\n", get_buffer);
-    token = strtok(get_buffer, ",;");data[0] = atoi(token);
-    token = strtok(NULL, ",;");data[1] = atoi(token);
-    token = strtok(NULL, ",;");data[2] = atoi(token);
-    token = strtok(NULL, ",;");data[3] = atoi(token);
+    bluetooth.gets(get_buffer, 11);
+    PC.printf("get_buffer = [%s]\n", get_buffer);
+    if (get_buffer[4] == ',' && get_buffer[9] == ';'){
+      token = strtok(get_buffer, ",;");data[2] = atoi(token); //get Temp
+      token = strtok(NULL, ",;");data[3] = atoi(token); //get Humid
+    }
     sendable = true;
-}
-
-int pow(int m, int n){
-  int a = 1;
-  for(int j=0;j<n;j++){
-    a *= 10;
-  }
-  return a;
 }
 
 int main() {
@@ -47,21 +37,22 @@ int main() {
   Timer T;
   T.start();
   PC.printf("Ready\n");
+  buffer_X[4] = '\0';buffer_Y[4] = '\0';
   while (1){
     if(bluetooth.readable()){
       BluetoothReceived();
-      if(display_mode){
+    }
+    if(display_mode){
         sprintf(display_buffer, "%d%%   ", int(float(data[0])/1024*100));
         lcd.locate(6,0);lcd.puts(display_buffer);//Update Speed
         sprintf(display_buffer, "%d    ", data[1]-90);
         lcd.locate(6,1);lcd.puts(display_buffer);//Update Roll
       }
-      else{
+    else{
         sprintf(display_buffer, "%d    ", data[2]);
         lcd.locate(6,0);lcd.puts(display_buffer);//Update Temp
         sprintf(display_buffer, "%d    ", data[3]);
         lcd.locate(6,1);lcd.puts(display_buffer);//Update Humid
-       }
     }
     if(!A && button_state || !B && button_state){button_state = false;}
     if(A == 1 && !button_state || first_round){
@@ -78,14 +69,19 @@ int main() {
         lcd.locate(0,1);lcd.puts("Humid:");
       }
     }
+    //Read from joystick and update
+    data[0] = int(Y.read() * 1023);//Speed
+    data[1] = int(X.read() * 1023);//Roll
+    
+    //Control Plane
     if((sendable && T.read() > 0.2) || T.read()>0.5){
       T.stop();T.reset();T.start();
-      degree = int(X.read() * 1023);
-      PWM = int(Y.read() * 1023);
-      sprintf(buffer_X, "%04d", degree);
-      sprintf(buffer_Y, "%04d", PWM);
-      sprintf(send_buffer, "%s,%s;", buffer_X, buffer_Y);
+      sprintf(buffer_Y, "%04d", data[0]);//Speed
+      sprintf(buffer_X, "%04d", data[1]);//Roll
+      sprintf(send_buffer, "%s,%s;", buffer_Y, buffer_X);
+      PC.printf("send_buffer = [%s]\n", send_buffer);
       bluetooth.puts(send_buffer);
+
       sendable = false;
     }
   }
