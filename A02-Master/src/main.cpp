@@ -41,11 +41,24 @@ int main() {
   while (1){
     if(bluetooth.readable()){
       BluetoothReceived();
+      sendable = true;
+    }
+
+    //Control Plane
+    if((sendable && T.read() > 0.02) || T.read()>0.5){
+      T.stop();T.reset();T.start();
+      sprintf(buffer_Y, "%04d", data[0]);//Speed
+      sprintf(buffer_X, "%04d", data[1]);//Roll
+      sprintf(send_buffer, "%s,%s;", buffer_Y, buffer_X);
+      PC.printf("send_buffer = [%s]\n", send_buffer);
+      bluetooth.puts(send_buffer);
+
+      sendable = false;
     }
     if(display_mode){
         sprintf(display_buffer, "%d%%   ", int(float(data[0])/1024*100));
         lcd.locate(6,0);lcd.puts(display_buffer);//Update Speed
-        sprintf(display_buffer, "%d    ", data[1]-90);
+        sprintf(display_buffer, "%d    ", (int)(float(data[1]) / 1023 * 180) - 90);
         lcd.locate(6,1);lcd.puts(display_buffer);//Update Roll
       }
     else{
@@ -73,16 +86,6 @@ int main() {
     data[0] = int(Y.read() * 1023);//Speed
     data[1] = int(X.read() * 1023);//Roll
     
-    //Control Plane
-    if((sendable && T.read() > 0.2) || T.read()>0.5){
-      T.stop();T.reset();T.start();
-      sprintf(buffer_Y, "%04d", data[0]);//Speed
-      sprintf(buffer_X, "%04d", data[1]);//Roll
-      sprintf(send_buffer, "%s,%s;", buffer_Y, buffer_X);
-      PC.printf("send_buffer = [%s]\n", send_buffer);
-      bluetooth.puts(send_buffer);
-
-      sendable = false;
-    }
+    
   }
 }

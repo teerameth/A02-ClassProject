@@ -60,17 +60,9 @@ int main() {
     //   currentDegree -= 1;
     //   setServo(currentDegree);
     // }
-    if(abs(currentDegree - degree) > 5){//update servo degree
-      currentDegree = degree;
-      setServo(currentDegree);
-      }
-    if(abs(currentSpeed - data[0]) > 5){
-      currentSpeed = data[0];//data[0] มีค่าตั่งเเต่ 0 - 1023
-      setPropeller(float(currentSpeed)/1024/2);//PWM //limited at 50%
-    }
     
 
-    if((sendable && T.read() > 0.2 || T.read() > 5)){
+    if((sendable && T.read() > 0.02)){
       T.stop();T.reset();T.start();
       dht22.readData();
       data[2] = int(dht22.ReadTemperature());
@@ -83,6 +75,15 @@ int main() {
       PC.printf("send_buffer = [%s]\n", send_buffer);
       bluetooth.puts(send_buffer);
       sendable = false;
+    }
+
+    if(abs(currentDegree - degree) > 5){//update servo degree
+      currentDegree = degree;
+      setServo(currentDegree);
+      }
+    if(abs(currentSpeed - data[0]) > 5){
+      currentSpeed = data[0];//data[0] มีค่าตั่งเเต่ 0 - 1023
+      setPropeller(float(currentSpeed)/1024/2);//PWM //limited at 50%
     }
     
   }
