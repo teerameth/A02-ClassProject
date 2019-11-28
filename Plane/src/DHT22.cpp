@@ -66,7 +66,7 @@ int DHT22::readData() {
     //
 
     DHT22_io.output();  // Change I/O to Output mode.
-    DHT22_io = 0';       // MCU set low signal.
+    DHT22_io = 0;       // MCU set low signal.
     wait_ms(18);        // Wait 18 milliseconds.
     DHT22_io = 1;       // MCU set high signal.
     wait_us(40);        // Wait 40 microseconds
