@@ -1,6 +1,6 @@
 #include "DHT22.h"              // Include Library DHT-22.
 
-#define DHT22_DATA_BIT_COUNT 41 // This should be 40, but the sensor is adding an extra bit at the start.
+#define DHT22_DATA_BIT_COUNT 40 //
 
 DHT22::DHT22(PinName pin) {
     _pin = pin;                 // Set Data Pin.
@@ -16,7 +16,7 @@ DHT22::~DHT22() {
 */
 
 int DHT22::readData() {
-    int i, j, retryCount,b;     // Notice 4 Variables
+    int i, j, retryCount;     // Notice 4 Variables
     unsigned int bitTimes[DHT22_DATA_BIT_COUNT];    // Notice 40 Channel Array or 5 Bytes for storing any bits.
 
     eError err = ERROR_NONE;    // Notice eError named 'err' and default value is ERR0R_NONE. (There's not error.)
@@ -51,15 +51,14 @@ int DHT22::readData() {
         - if time more than 125*2us = 250 us, it will be bus busy.
         - if it respones, exit on DHT22 retrun 'High' Signal within 250us.
     */
-    do {
-        if (retryCount > 125) {
+	 do {
+        if (retryCount > 125)  { // 40*1us == 40us
             err = BUS_BUSY;
             return err;
         }
-        retryCount ++;
+        retryCount++;
         wait_us(2);
-    } while ((DHT22_io==0)); // exit on DHT22 retrun 'High' Signal within 250us
-
+    } while ((DHT22_io==0)); // Exit on DHT22 pull low within 40us
 
     // Send the activate pulse
     // Step 1: MCU send out start signal to DHT22 and DHT22 send response signal to MCU.
@@ -67,7 +66,7 @@ int DHT22::readData() {
     //
 
     DHT22_io.output();  // Change I/O to Output mode.
-    DHT22_io = 0;       // MCU set low signal.
+    DHT22_io = 0';       // MCU set low signal.
     wait_ms(18);        // Wait 18 milliseconds.
     DHT22_io = 1;       // MCU set high signal.
     wait_us(40);        // Wait 40 microseconds
@@ -99,14 +98,28 @@ int DHT22::readData() {
     retryCount = 0;     // Set retryCount 0
 
     do {
-        if (retryCount > 80)  { // 80*1us == 80us
+        if (retryCount > 40)  { // 40*1us == 40us
             err = ERROR_ACK_TOO_LONG;
             return err;
         }
         retryCount++;
         wait_us(1);
     } while ((DHT22_io==0)); // Exit on DHT22 push high within 80us
+	
+	wait_us(80);    // Wait 80 microseconds
+    
+    retryCount = 0;     // Set retryCount 0
 
+    do {
+        if (retryCount > 40)  { // 40*1us == 40us
+            err = ERROR_ACK_TOO_LONG;
+            return err;
+        }
+        retryCount++;
+        wait_us(1);
+    } while ((DHT22_io==1)); // Exit on DHT22 push high within 80us
+	
+	
     if (err != ERROR_NONE) {
         return err;
     }
@@ -120,7 +133,7 @@ int DHT22::readData() {
     /*
         Let's create loop reading 41 Bits
     */
-    for (i = 0; i < 5; i++) {
+/*    for (i = 0; i < 5; i++) {
         for (j = 0; j < 8; j++) {
 
             retryCount = 0;
@@ -142,6 +155,27 @@ int DHT22::readData() {
                 count++;
             }
         }
+    }*/
+	    for (i=0; i < DHT22_DATA_BIT_COUNT; i++) {
+        retryCount = 0;
+        do {                       // Getting start bit signal 
+            if (retryCount > 100) { // spec is 50 u, 25*2 = 50 us // DHT22 sync timeout error!
+                return ERROR_SYNC_TIMEOUT;
+            }
+            retryCount ++;
+            wait_us(1);
+        } while (DHT22_io==0);   // Exit on high volage within 50us
+        // Measure the width of the data pulse
+        retryCount = 0;
+        do {
+            if (retryCount > 80) { // spec is 80us, 50*2 == 100us
+                pc.printf("DHT22 ERROR DATA TIMEOUT\n");
+                return ERROR_DATA_TIMEOUT;
+            }
+            retryCount++;
+            wait_us(1);
+        } while (DHT22_io==1);        // Exit on low volage below 80us
+        bitTimes[i] = retryCount; // Assign bitTimes in us
     }
 	/* 
 		If read sccessfully data, change mode MCU to OUTPUT and set High-Signal since it's read sccessful.
@@ -155,7 +189,7 @@ int DHT22::readData() {
 		Keep each 8 bits move to 1 bytes. (From Left to Right)
 	*/
 	
-    for (i = 0; i < 5; i++) {
+/*    for (i = 0; i < 5; i++) {
         b=0;
         for (j=0; j<8; j++) {
 			if (bitTimes[i*8+j+1] > 0) {
@@ -163,7 +197,55 @@ int DHT22::readData() {
             }
         }
         DHT22_data[i]=b;
+    }*/
+	
+	    // Now bitTimes have the number of retries (us *2)
+    // that were needed to find the end of each data bit
+    // Spec: 0 is 26 to 28 us
+    // Spec: 1 is 70 us
+    // bitTimes[x] <= 14 is a 0 (14x2us = 28us)
+    // bitTimes[x] > 15  is a 1 (15x2us = 30us)
+    // Note: the bits are offset by one from the data sheet, not sure why
+    int currentHumidityH   = 0;
+	int currentHumidityL   = 0;
+    int currentTemperatureH = 0;
+	int currentTemperatureL = 0;
+    int checkSum           = 0;
+    // First High-Byte 8 bit is Humidity
+    for (i=0; i<8; i++) {
+        if (bitTimes[i] > 14) {
+            currentHumidityH |= ( 1 << (7-i));
+        }
     }
+    // Second Low-Byte 8 bit is Humidity
+    for (i=0; i<8; i++) {
+        if (bitTimes[i+8] > 14) {
+            currentHumidityL |= ( 1 << (7-i));
+        }
+    }
+	// Third Low-Byte 8 bit is Temperature 
+    for (i=0; i<8; i++) {
+        if (bitTimes[i+16] > 14) {
+            currentTemperatureH |= ( 1 << (7-i));
+        }
+    }
+    // Fourth 8 bit is Temperature 
+    for (i=0; i<8; i ++) {
+        if (bitTimes[i+24] > 14) {
+            currentTemperatureL |= (1 <<(7-i));
+        }
+    }
+    // Last 8 bit is Checksum
+    for (i=0; i<8; i++) {
+        if (bitTimes[i+32] > 14) {
+            checkSum |= (1 << (7-i));
+        }
+    }
+	
+	DHT22_data[0] = currentHumidityH;
+	DHT22_data[1] = currentHumidityL;
+	DHT22_data[2] = currentTemperatureH;
+	DHT22_data[3] = currentTemperatureL;
 	
 	/*
 		Checksum before keep least value.
