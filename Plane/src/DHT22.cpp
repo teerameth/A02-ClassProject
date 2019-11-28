@@ -159,21 +159,21 @@ int DHT22::readData() {
 	    for (i=0; i < DHT22_DATA_BIT_COUNT; i++) {
         retryCount = 0;
         do {                       // Getting start bit signal 
-            if (retryCount > 100) { // spec is 50 u, 25*2 = 50 us // DHT22 sync timeout error!
+            if (retryCount > 25) { // spec is 50 u, 25*2 = 50 us // DHT22 sync timeout error!
                 return ERROR_SYNC_TIMEOUT;
             }
             retryCount ++;
-            wait_us(1);
+            wait_us(2);
         } while (DHT22_io==0);   // Exit on high volage within 50us
         // Measure the width of the data pulse
         retryCount = 0;
         do {
-            if (retryCount > 80) { // spec is 80us, 50*2 == 100us
+            if (retryCount > 40) { // spec is 80us, 40*2 == 80us
                 pc.printf("DHT22 ERROR DATA TIMEOUT\n");
                 return ERROR_DATA_TIMEOUT;
             }
             retryCount++;
-            wait_us(1);
+            wait_us(2);
         } while (DHT22_io==1);        // Exit on low volage below 80us
         bitTimes[i] = retryCount; // Assign bitTimes in us
     }
