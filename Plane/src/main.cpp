@@ -1,23 +1,17 @@
 #include <mbed.h>
 #include "DHT22.h"
-Serial PC(USBTX, USBRX), bluetooth(D8, D2);//Bluetooth (RX, TX)
-uint8_t receive = 0;
-char buffer[9];
-char buffer1[5];
-uint32_t data[4] = {1000, 2000, 3000, 4000};
-uint32_t data1[2];
+Serial PC(USBTX, USBRX, 115200), bluetooth(D8, D2, 115200);//Bluetooth (RX, TX)
+char get_buffer[11], send_buffer[11];//"0000,0000;" -> 11
 PwmOut Servo(D9), Propeller(D10);
-int highByte, lowByte;
-int currentDegree = 90;
-int delayms = 20;
-bool sendable=false;
+volatile int currentDegree = 90, currentSpeed = 512;
+volatile int delayms = 20;
+volatile bool sendable=false;
 
 DHT22 dht22(D4);
 
-void split(int n) {
-    highByte = (n / 128) + 1;
-    lowByte = n % 128 + 1;
-}
+int16_t data[4] = {50, 0, 25, 50};//Speed, Roll, Temp, Humid
+char* token;
+char buffer_T[5], buffer_H[5];
 
 void setServo(int degree){
     currentDegree = degree;
@@ -33,65 +27,67 @@ void setPropeller(float PWM){
 }
 
 void BluetoothReceived(void){
-    bluetooth.gets(buffer1, sizeof(buffer1));
-    for(int j=0; j < 2; j++){
-      if(buffer1[j*2] > 0 && buffer1[j*2+1] > 0){
-        data1[j] = (buffer1[j*2]-1)*128 + (buffer1[j*2+1]-1);
-        PC.printf("data[%d] = %d\n", j, data1[j]);
-        // PC.printf("%d, %d\n", buffer1[j*2]-1, buffer1[j*2+1]);
-      }
+    bluetooth.gets(get_buffer, 11);
+    if (get_buffer[4] == ',' && get_buffer[9] == ';'){
+      PC.printf("get_buffer = [%s]\n", get_buffer);
+      token = strtok(get_buffer, ",;");data[0] = atoi(token); //get Speed
+      token = strtok(NULL, ",;");data[1] = atoi(token); //get Roll
+      sendable = true;
     }
+    
 }
 
 int main() {
-  PC.baud(38400);
-  bluetooth.baud(38400);
+  buffer_T[4] = '\0', buffer_H[4] = '\0';
   Servo.period(0.02f);
   Propeller.period(0.02f);
   float degree = 0;
   int PWM = 0;
   Timer T;
-  Timer T1;
-  T1.start();
+  Timer TP;
+  TP.start();
   T.start();
   PC.printf("Slave\n");
   while(1) {
     if(bluetooth.readable()){
       BluetoothReceived();
       sendable = true;
+      degree = float(data[1]) * 180 / 1024;
     }
-    degree = float(data1[0]) * 180 / 1024;
-    if(currentDegree < degree){//Servo
-      currentDegree += 1;
-      setServo(currentDegree);
-    }
-    else if(currentDegree > degree){
-      currentDegree -= 1;
-      setServo(currentDegree);
-    }
-    if(T1.read() > 0.1){
-      T1.stop();T1.start();
-      setPropeller(float(data1[1])/1024/10);//PWM //limited at 10%
-    }
+    
+    
 
-    if((sendable && T.read() > 0.2)){
-      T.stop();
+    if((sendable && T.read() > 0.02)){
       T.reset();
-      T.start();
-      data[0] = int(data1[1]); //speed
-      data[1] = int(currentDegree); //roll
       dht22.readData();
-      data[2] = int(dht22.ReadTemperature()); //temperature
-      data[3] = int(dht22.ReadHumidity()); //humidity
-
-      for(int i=0;i<4;i++){
-        split(data[i]);
-        buffer[i*2] = highByte;
-        buffer[i*2+1] = lowByte;
-      }
-      bluetooth.puts(buffer);
+      data[2] = int(dht22.ReadTemperature());
+      data[3] = int(dht22.ReadHumidity());
+      sprintf(buffer_T, "%04d", data[2]);//Temp
+      sprintf(buffer_H, "%04d", data[3]);//Humid
+      PC.printf("Temp = [%s]\n", buffer_T);
+      PC.printf("Humid = [%s]\n", buffer_H);
+      sprintf(send_buffer, "%s,%s;", buffer_T, buffer_H);
+      PC.printf("send_buffer = [%s]\n", send_buffer);
+      bluetooth.puts(send_buffer);
       sendable = false;
-      // PC.printf("%d\n", buffer);
+    }
+
+    if(abs(currentDegree - degree) > 2){//update servo degree
+      if(TP.read() > 0.05){
+        if(currentDegree < degree){//Servo
+          currentDegree += 3;
+          setServo(currentDegree);
+          }
+        else if(currentDegree > degree){
+          currentDegree -= 3;
+          setServo(currentDegree);
+          }
+        TP.reset();
+        }
+      }
+    if(abs(currentSpeed - data[0]) > 5){
+      currentSpeed = data[0];//data[0] มีค่าตั่งเเต่ 0 - 1023
+      setPropeller(float(currentSpeed)/1024/2);//PWM //limited at 50%
     }
     
   }
